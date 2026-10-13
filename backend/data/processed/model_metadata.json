@@ -1,60 +1,105 @@
 {
-  "dataset_name": "Water Quality Prediction",
-  "source": "UCI Machine Learning Repository dataset 733; data arranged and partly derived from USGS",
-  "source_url": "https://archive.ics.uci.edu/dataset/733/water+quality+prediction-1",
+  "dataset_name": "Water Quality Prediction (UCI ID 733 / Zhao 2019)",
+  "doi": "10.1145/3339823",
   "license": "CC BY 4.0",
-  "citation": "Zhao, Liang (2019). Water Quality Prediction. DOI: 10.1145/3339823.",
+  "source_url": "https://archive.ics.uci.edu/dataset/733/water+quality+prediction-1",
   "raw_observations": {
-    "dates": 705,
-    "stations_per_date": 37,
-    "station_day_matrices": 26085
+    "days": 705,
+    "stations_per_day": 37,
+    "total_readings": 26085
   },
-  "processed_samples": 705,
-  "available_features": [
+  "processed_samples": 26085,
+  "features": [
     "ph",
     "conductance",
     "dissolved_oxygen",
     "temperature"
   ],
-  "feature_notes": {
-    "ph": "pH midpoint from maximum/minimum normalized pH indices",
-    "conductance": "specific conductance mean normalized index",
-    "dissolved_oxygen": "dissolved oxygen mean normalized index",
-    "temperature": "temperature mean normalized index"
-  },
-  "missing_values_after_processing": {
-    "ph": 0,
-    "conductance": 0,
-    "dissolved_oxygen": 0,
-    "temperature": 0
-  },
-  "duplicate_rows_removed": 0,
-  "preprocessing": "The source archive stores 37x11 matrices per date. This application uses the daily median across the 37 stations for the four supported indices; no measurements are invented. Values remain in the source dataset normalized scale.",
   "thresholds": {
     "ph": {
-      "low_max": 0.4434831998387991,
-      "moderate_max": 0.44985743791244776,
-      "unit": "normalized index (source-processed)"
+      "low_max": 0.43879527479723945,
+      "moderate_max": 0.45611052339932495,
+      "unit": "normalized index (0\u20131)",
+      "description": "Midpoint between minimum and maximum normalized daily pH indices across monitoring stations."
     },
     "conductance": {
-      "low_max": 0.5109649122807017,
+      "low_max": 0.5131578947368421,
       "moderate_max": 0.611842105263158,
-      "unit": "normalized index (source-processed)"
+      "unit": "normalized index (0\u20131)",
+      "description": "Normalized electric conductivity representing dissolved mineral ions and salinity."
     },
     "dissolved_oxygen": {
       "low_max": 0.5454545454545455,
-      "moderate_max": 0.6742424242424243,
-      "unit": "normalized index (source-processed)"
+      "moderate_max": 0.6666666666666667,
+      "unit": "normalized index (0\u20131)",
+      "description": "Normalized dissolved oxygen concentration indicating ecological vitality and aerobic status."
     },
     "temperature": {
-      "low_max": 0.459375,
-      "moderate_max": 0.7,
-      "unit": "normalized index (source-processed)"
+      "low_max": 0.465625,
+      "moderate_max": 0.675,
+      "unit": "normalized index (0\u20131)",
+      "description": "Normalized water temperature influencing oxygen solubility and microbiological growth kinetics."
     }
   },
-  "limitations": [
-    "The archive does not provide nitrate, turbidity, TDS, chloride, or a legal potability label.",
-    "The processed daily network median is an aggregate and should not be read as a station-specific safety certificate.",
-    "Risk states are a transparent decision-support model, not regulatory classifications."
-  ]
+  "standards_metadata": {
+    "BIS_IS_10500_2012": {
+      "title": "Drinking Water \u2014 Specification (Second Revision)",
+      "agency": "Bureau of Indian Standards (BIS)",
+      "parameters": {
+        "ph": {
+          "acceptable_min": 6.5,
+          "acceptable_max": 8.5,
+          "permissible_min": 6.5,
+          "permissible_max": 8.5,
+          "unit": "pH scale"
+        },
+        "dissolved_oxygen": {
+          "guideline_min": 5.0,
+          "unit": "mg/L",
+          "note": "Ecological and aesthetic indicator"
+        },
+        "specific_conductance": {
+          "proxy_tds_mg_l": 500.0,
+          "permissible_tds_mg_l": 2000.0,
+          "unit": "\u00b5S/cm"
+        }
+      }
+    },
+    "CPCB_DESIGNATED_BEST_USE": {
+      "title": "Water Quality Criteria for Designated Best Use",
+      "agency": "Central Pollution Control Board, India",
+      "classes": {
+        "A": "Drinking Water Source without conventional treatment but after disinfection (pH 6.5\u20138.5, DO \u2265 6 mg/L, BOD \u2264 2 mg/L)",
+        "B": "Outdoor bathing organized (pH 6.5\u20138.5, DO \u2265 5 mg/L, BOD \u2264 3 mg/L)",
+        "C": "Drinking water source after conventional treatment and disinfection (pH 6.5\u20138.5, DO \u2265 4 mg/L, BOD \u2264 3 mg/L)",
+        "D": "Propagation of Wildlife and Fisheries (pH 6.5\u20138.5, DO \u2265 4 mg/L, Free Ammonia \u2264 1.2 mg/L)",
+        "E": "Irrigation, Industrial Cooling, Controlled Waste disposal (pH 6.0\u20138.5, Electrical Conductivity \u2264 2250 \u00b5S/cm)"
+      }
+    },
+    "WHO_GDWQ_2022": {
+      "title": "Guidelines for Drinking-water Quality, 4th edition",
+      "agency": "World Health Organization (WHO)",
+      "parameters": {
+        "ph": {
+          "optimal_min": 6.5,
+          "optimal_max": 8.5,
+          "unit": "pH scale"
+        },
+        "dissolved_oxygen": {
+          "note": "Depletion indicates high microbial/organic pollution",
+          "unit": "mg/L"
+        }
+      }
+    }
+  },
+  "target_definitions": {
+    "wqi": "Horton/Brown Weighted Arithmetic Water Quality Index (0-100)",
+    "overall_risk": "Multi-state risk: low (WQI>=75), moderate (55-75), high (35-55), critical (<35 or acute deviation)",
+    "chemical_hazard": "Binary indicator: pH deviation or conductance > 90th percentile",
+    "biological_hazard": "Binary indicator: DO depletion (<0.40) indicating organic pollution",
+    "acute_exceedance": "Binary indicator: Any critical chemical or biological failure",
+    "deterioration_t1": "Binary next-day deterioration horizon",
+    "deterioration_t7": "Binary 7-day deterioration horizon"
+  },
+  "train_test_split": "Chronological holdout (no lookahead leakage). Quantiles fitted strictly on Train split."
 }

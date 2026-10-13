@@ -1,0 +1,70 @@
+{
+  "total_daily_samples": 705,
+  "total_station_observations": 26085,
+  "date_range": {
+    "start": "2016-01-28",
+    "end": "2018-01-01"
+  },
+  "splits": {
+    "train_days": 493,
+    "train_station_observations": 18241,
+    "val_days": 106,
+    "val_station_observations": 3922,
+    "test_days": 106,
+    "test_station_observations": 3922,
+    "split_ratio": "70% Train / 15% Val / 15% Test (chronological holdout)"
+  },
+  "missing_values": {
+    "ph": 0,
+    "conductance": 0,
+    "dissolved_oxygen": 0,
+    "temperature": 0
+  },
+  "duplicate_rows": 212,
+  "class_distribution": {
+    "station_all": {
+      "low": 21140,
+      "moderate": 4364,
+      "critical": 319,
+      "high": 262
+    },
+    "station_train": {
+      "low": 15020,
+      "moderate": 2869,
+      "critical": 193,
+      "high": 159
+    },
+    "station_val": {
+      "low": 2646,
+      "moderate": 1118,
+      "critical": 89,
+      "high": 69
+    },
+    "station_test": {
+      "low": 3474,
+      "moderate": 377,
+      "critical": 37,
+      "high": 34
+    },
+    "daily_all": {
+      "low": 676,
+      "moderate": 29
+    },
+    "daily_train": {
+      "low": 466,
+      "moderate": 27
+    }
+  },
+  "outlier_iqr_counts": {
+    "ph": 1292,
+    "conductance": 149,
+    "dissolved_oxygen": 269,
+    "temperature": 0
+  },
+  "temporal_alignment": "Daily median across 37 stations plus 26,085 individual station-day measurements.",
+  "standards_referenced": [
+    "WHO_GDWQ_2022",
+    "BIS_IS_10500_2012",
+    "CPCB_DESIGNATED_BEST_USE"
+  ]
+}

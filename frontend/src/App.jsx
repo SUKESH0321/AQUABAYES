@@ -1,4 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
+import Waves from './Waves.jsx';
+import Benchmark from './Benchmark';
+import EvidenceTrail from './EvidenceTrail';
 
 const api = async (path, options) => {
   const response = await fetch(path, { headers: { 'Content-Type': 'application/json' }, ...options });
@@ -22,6 +25,7 @@ const nav = [
   ['whatif', 'What-if analysis', '∿', 'CORE'],
   ['history', 'History', '◒', 'OBSERVATORY'],
   ['sources', 'Water sources', '⌖', 'OBSERVATORY'],
+  ['benchmark', 'Model benchmark', '⊞', 'MODEL'],
   ['network', 'Bayesian network', '⬡', 'MODEL'],
   ['influence', 'Decision network', '◇', 'MODEL'],
   ['about', 'Model / About', '?', 'MODEL'],
@@ -67,18 +71,34 @@ function riskFrom(result) { return result?.dominant_risk || Object.entries(resul
 function pageLabel(page) { return nav.find(([id]) => id === page)?.[1] || 'Dashboard'; }
 
 function Brand({ processing = false }) {
-  return <div className={`brand-lockup ${processing ? 'processing' : ''}`} aria-label="AQUA / BAYES water risk observatory">
+  return <div className={`brand-lockup ${processing ? 'processing' : ''}`} aria-label="Mizu water risk observatory">
     <div className="brand-sigil" aria-hidden="true">
-      <svg viewBox="0 0 52 52" role="img">
-        <circle className="sigil-orbit" cx="26" cy="26" r="19" />
-        <path className="sigil-wave" d="M10 27c5-7 9 7 14 0s9-7 14 0 8 7 14 0" />
-        <circle className="sigil-node n-one" cx="16" cy="21" r="2.2" />
-        <circle className="sigil-node n-two" cx="28" cy="27" r="2.2" />
-        <circle className="sigil-node n-three" cx="40" cy="21" r="2.2" />
+      <svg viewBox="0 0 64 64">
+        <defs>
+          <linearGradient id="mz-bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#0e2b35" /><stop offset="100%" stopColor="#1b5a60" /></linearGradient>
+          <linearGradient id="mz-drop" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#b9f6e6" /><stop offset="45%" stopColor="#69d4bd" /><stop offset="100%" stopColor="#278e83" /></linearGradient>
+          <linearGradient id="mz-ring" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#69d4bd" /><stop offset="100%" stopColor="#69d4bd" stopOpacity="0" /></linearGradient>
+          <clipPath id="mz-clip"><path d="M32 12C32 12 20 26 20 35a12 12 0 0 0 24 0C44 26 32 12 32 12Z" /></clipPath>
+        </defs>
+        <circle cx="32" cy="32" r="30" fill="url(#mz-bg)" />
+        <circle className="mz-ripple" cx="32" cy="38" r="10" />
+        <circle className="mz-ripple mz-ripple-2" cx="32" cy="38" r="10" />
+        <circle className="mz-orbit" cx="32" cy="32" r="29" fill="none" stroke="url(#mz-ring)" strokeWidth="2" strokeLinecap="round" strokeDasharray="60 123" />
+        <circle className="mz-ticks" cx="32" cy="32" r="25" />
+        <g className="mz-drop-float">
+          <path d="M32 12C32 12 20 26 20 35a12 12 0 0 0 24 0C44 26 32 12 32 12Z" fill="url(#mz-drop)" />
+          <g clipPath="url(#mz-clip)">
+            <path className="mz-wave" d="M8 36c6-5 12-5 18 0s12 5 18 0 12-5 18 0 12 5 18 0v24H8Z" fill="#0e2b35" opacity=".5" />
+            <path className="mz-wave mz-wave-2" d="M8 40c6-4 12-4 18 0s12 4 18 0 12-4 18 0 12 4 18 0v24H8Z" fill="#0e2b35" opacity=".85" />
+          </g>
+          <path d="M26 24c1.2-2.2 2.8-4.2 4.4-5.8" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" fill="none" opacity=".85" />
+        </g>
+        <circle className="mz-spark" cx="50" cy="16" r="1.8" />
+        <circle className="mz-spark mz-spark-2" cx="13" cy="46" r="1.4" />
       </svg>
     </div>
     <div>
-      <div className="wordmark">AQUA <span>/</span> BAYES</div>
+      <div className="wordmark">MIZU</div>
       <div className="brand-subtitle">WATER RISK OBSERVATORY</div>
     </div>
   </div>;
@@ -114,19 +134,21 @@ function RadialNavigation({ page, navigate }) {
     return () => window.removeEventListener('keydown', close);
   }, []);
   const handleNavigate = (id) => { navigate(id); setOpen(false); };
-  return <div className={`radial-nav ${open ? 'open' : ''}`}>
+  return <>
+  <div className={`radial-backdrop ${open ? 'open' : ''}`} onClick={() => setOpen(false)} aria-hidden="true" />
+  <div className={`radial-nav ${open ? 'open' : ''}`}>
     <div className="radial-arc" aria-hidden="true" />
     <div className="radial-items" aria-label="Application navigation">
       {nav.map(([id, label, glyph, group], index) => {
         const angle = 10 + (index * 160) / (nav.length - 1);
-        const radius = window.innerWidth < 700 ? 142 : 238;
+        const radius = Math.max(150, Math.min(300, window.innerWidth / 2 - 85));
         const x = Math.cos((angle * Math.PI) / 180) * radius;
         const y = -Math.sin((angle * Math.PI) / 180) * radius;
         return <button
           key={id}
           data-cursor
           className={`radial-item ${page === id ? 'active' : ''}`}
-          style={{ '--x': `${x}px`, '--y': `${y}px`, '--rotate': `${(90 - angle) * 0.16}deg`, '--delay': `${open ? index * 34 : (nav.length - index) * 18}ms` }}
+          style={{ zIndex: 20 - Math.round(Math.abs(index - (nav.length - 1) / 2)), '--x': `${x}px`, '--y': `${y}px`, '--rotate': `${(90 - angle) * 0.16}deg`, '--delay': `${open ? index * 34 : (nav.length - index) * 18}ms` }}
           onClick={() => handleNavigate(id)}
           tabIndex={open ? 0 : -1}
           aria-current={page === id ? 'page' : undefined}
@@ -135,9 +157,10 @@ function RadialNavigation({ page, navigate }) {
       })}
     </div>
     <button className="radial-trigger" data-cursor onClick={() => setOpen((value) => !value)} aria-expanded={open} aria-label={open ? 'Close navigation wheel' : 'Open navigation wheel'}>
-      <span className="trigger-core"><span>∿</span></span><span className="trigger-caption">{open ? 'CLOSE' : 'AQUA'}</span>
+      <span className="trigger-core"><span>∿</span></span><span className="trigger-caption">{open ? 'CLOSE' : 'MIZU'}</span>
     </button>
-  </div>;
+  </div>
+  </>;
 }
 
 function Shell({ page, navigate, children, processing = false }) {
@@ -163,7 +186,7 @@ function Shell({ page, navigate, children, processing = false }) {
 
   return <div className="app-shell">
     <CustomCursor />
-    <div className="instrument-background" aria-hidden="true"><svg className="ocean-waves" viewBox="0 0 1600 1000" preserveAspectRatio="none"><defs><linearGradient id="wave-face-a" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#278e83"/><stop offset="30%" stopColor="#69d4bd"/><stop offset="58%" stopColor="#278e83"/><stop offset="100%" stopColor="#143943"/></linearGradient><linearGradient id="wave-face-b" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#0e2b35"/><stop offset="28%" stopColor="#278e83"/><stop offset="60%" stopColor="#143943"/><stop offset="100%" stopColor="#0e2b35"/></linearGradient><linearGradient id="wave-face-c" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#143943"/><stop offset="32%" stopColor="#69d4bd"/><stop offset="64%" stopColor="#278e83"/><stop offset="100%" stopColor="#0e2b35"/></linearGradient><linearGradient id="wave-ridge" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stopColor="#278e83" stopOpacity=".06"/><stop offset="45%" stopColor="#69d4bd" stopOpacity=".74"/><stop offset="100%" stopColor="#d8f7ec" stopOpacity=".12"/></linearGradient></defs><g className="wave-layer wave-layer-one"><path className="wave-shadow" d="M-220 78 C35 170 72 -24 265 68 S505 198 735 112 1006 -7 1220 78 1510 190 1820 58"/><path className="wave-body" d="M-220 78 C35 170 72 -24 265 68 S505 198 735 112 1006 -7 1220 78 1510 190 1820 58"/><path className="wave-ridge" d="M-220 78 C35 170 72 -24 265 68 S505 198 735 112 1006 -7 1220 78 1510 190 1820 58"/></g><g className="wave-layer wave-layer-two"><path className="wave-shadow" d="M-220 235 C25 338 82 127 285 222 S535 355 760 256 1015 129 1232 236 1522 350 1820 215"/><path className="wave-body" d="M-220 235 C25 338 82 127 285 222 S535 355 760 256 1015 129 1232 236 1522 350 1820 215"/><path className="wave-ridge" d="M-220 235 C25 338 82 127 285 222 S535 355 760 256 1015 129 1232 236 1522 350 1820 215"/></g><g className="wave-layer wave-layer-three"><path className="wave-shadow" d="M-220 394 C8 491 72 287 275 378 S535 518 765 412 1028 280 1240 390 1510 500 1820 370"/><path className="wave-body" d="M-220 394 C8 491 72 287 275 378 S535 518 765 412 1028 280 1240 390 1510 500 1820 370"/><path className="wave-ridge" d="M-220 394 C8 491 72 287 275 378 S535 518 765 412 1028 280 1240 390 1510 500 1820 370"/></g><g className="wave-layer wave-layer-four"><path className="wave-shadow" d="M-220 552 C10 650 72 444 292 528 S540 666 762 565 1025 430 1250 540 1520 668 1820 525"/><path className="wave-body" d="M-220 552 C10 650 72 444 292 528 S540 666 762 565 1025 430 1250 540 1520 668 1820 525"/><path className="wave-ridge" d="M-220 552 C10 650 72 444 292 528 S540 666 762 565 1025 430 1250 540 1520 668 1820 525"/></g><g className="wave-layer wave-layer-five"><path className="wave-shadow" d="M-220 710 C0 801 92 594 302 687 S550 834 775 717 1028 584 1248 698 1528 812 1820 675"/><path className="wave-body" d="M-220 710 C0 801 92 594 302 687 S550 834 775 717 1028 584 1248 698 1528 812 1820 675"/><path className="wave-ridge" d="M-220 710 C0 801 92 594 302 687 S550 834 775 717 1028 584 1248 698 1528 812 1820 675"/></g><g className="wave-layer wave-layer-six"><path className="wave-shadow" d="M-220 868 C18 960 75 748 292 833 S552 986 782 872 1040 730 1262 846 1525 972 1820 820"/><path className="wave-body" d="M-220 868 C18 960 75 748 292 833 S552 986 782 872 1040 730 1262 846 1525 972 1820 820"/><path className="wave-ridge" d="M-220 868 C18 960 75 748 292 833 S552 986 782 872 1040 730 1262 846 1525 972 1820 820"/></g></svg></div>
+    <div className="instrument-background" aria-hidden="true"><Waves /></div>
     <header className="instrument-header">
       <Brand processing={processing} />
       <div className="header-center"><span className="header-kicker">FIELD DECISION SYSTEM</span><span className="header-route">/ {pageLabel(page)}</span></div>
@@ -224,7 +247,11 @@ function EvidenceForm({ onResult, whatIf = false, initial = emptyEvidence }) {
 function ResultView({ result, navigate }) {
   if (!result) return <section className="instrument-panel empty-state"><span>∿</span><h2>No assessment loaded.</h2><p>Run an assessment to inspect the posterior and decision chain.</p><button className="instrument-button" onClick={() => navigate('analyze')}><span>OPEN ANALYSIS CONSOLE</span><b>↗</b></button></section>;
   const risk = riskFrom(result); const recommendation = result.recommendation; const resultDisclaimer = result.disclaimer || disclaimer;
-  return <div className="result-layout"><section className="result-banner"><div><span className="section-kicker">POSTERIOR ASSESSMENT / {result.sample_date}</span><h2><RiskBadge risk={risk} /> {actionLabel(result.recommendation_label || recommendation)}</h2><p>Action selected by highest expected utility. The posterior remains probabilistic, not a legal safety certification.</p></div><div className="result-score"><strong>{pct(result.posterior.overall_risk[risk])}</strong><span>{risk} risk probability</span></div></section><ProcessTrail active={5} /><div className="result-grid"><div><section className="posterior-constellation instrument-panel"><div className="panel-label-row"><span className="section-kicker">POSTERIOR / CONTAMINATION BELIEFS</span><span className="mono-note">MODEL V1</span></div><h2>Probability is the result.</h2><div className="ring-row"><Ring value={result.posterior.chemical.high} label="chemical" color="#d9854d" /><Ring value={result.posterior.biological.high} label="biological" color="#65c6af" /><Ring value={result.posterior.overall_risk[risk]} label={risk} color={risk === 'critical' ? '#c76660' : '#d4ae5e'} /></div></section><EvidenceFactors result={result} /></div><aside><RiskDistribution dist={result.posterior.overall_risk} title="Overall quality risk" /><UtilityPanel utilities={result.utilities} recommendation={recommendation} /></aside></div><div className="result-subgrid"><RiskDistribution dist={result.posterior.chemical} title="Chemical contamination" /><RiskDistribution dist={result.posterior.biological} title="Biological contamination" /></div><div className="disclaimer"><span>SAFETY / SCOPE</span>{resultDisclaimer}</div></div>;
+  return <div className="result-layout">
+    <section className="result-banner"><div><span className="section-kicker">POSTERIOR ASSESSMENT / {result.sample_date}</span><h2><RiskBadge risk={risk} /> {actionLabel(result.recommendation_label || recommendation)}</h2><p>Action selected by highest expected utility. Evaluated by Calibrated Champion & Exact Bayesian inference.</p></div><div className="result-score"><strong>{pct(result.posterior.overall_risk[risk])}</strong><span>{risk} risk probability</span></div></section>
+    <EvidenceTrail trail={result.evidence_trail} uncertainty={result.uncertainty} ood={result.out_of_distribution} wqi={result.wqi} standardsClass={result.standards_classification} />
+    <ProcessTrail active={5} />
+    <div className="result-grid"><div><section className="posterior-constellation instrument-panel"><div className="panel-label-row"><span className="section-kicker">POSTERIOR / CONTAMINATION BELIEFS</span><span className="mono-note">{result.model_version || 'v1.0.0-champion'}</span></div><h2>Probability is the result.</h2><div className="ring-row"><Ring value={result.posterior.chemical.high} label="chemical" color="#d9854d" /><Ring value={result.posterior.biological.high} label="biological" color="#65c6af" /><Ring value={result.posterior.overall_risk[risk]} label={risk} color={risk === 'critical' ? '#c76660' : '#d4ae5e'} /></div></section><EvidenceFactors result={result} /></div><aside><RiskDistribution dist={result.posterior.overall_risk} title="Overall quality risk" /><UtilityPanel utilities={result.utilities} recommendation={recommendation} /></aside></div><div className="result-subgrid"><RiskDistribution dist={result.posterior.chemical} title="Chemical contamination" /><RiskDistribution dist={result.posterior.biological} title="Biological contamination" /></div><div className="disclaimer"><span>SAFETY / SCOPE</span>{resultDisclaimer}</div></div>;
 }
 
 function Analyze({ setResult, navigate }) { return <div className="page-content"><PageHeading kicker="ANALYSIS / EVIDENCE → POSTERIOR" title="Make uncertainty explicit." copy="The four supported source features are kept in their normalized units. Missing nitrate, TDS, and turbidity values are not invented." /><EvidenceForm onResult={(result) => { setResult(result); navigate('risk'); }} /><ProcessTrail active={1} /></div>; }
@@ -263,6 +290,7 @@ export default function App() {
   else if (page === 'whatif') content = <WhatIf result={result} setResult={setResult} />;
   else if (page === 'history') content = <History history={history} setResult={setResult} navigate={navigate} />;
   else if (page === 'sources') content = <Sources />;
+  else if (page === 'benchmark') content = <div className="page-content"><PageHeading kicker="MODEL / RIGOROUS EVALUATION" title="Benchmarked against baselines." copy="Evaluated on 3,922 held-out chronological test observations with ECE, Brier score, and covariate drift tracking." /><Benchmark api={api} /></div>;
   else if (page === 'network') content = <Network />;
   else if (page === 'influence') content = <Network influence />;
   else content = <About />;

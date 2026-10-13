@@ -1,4 +1,4 @@
-# AQUA / BAYES — Bayesian Water Quality Risk Prediction & Decision Support
+# Mizu — Bayesian Water Quality Risk Prediction & Decision Support
 
 A runnable academic decision-support application aligned with SDG 6. It combines a real UCI/USGS-derived water-quality dataset, a `pgmpy` Bayesian Network, exact posterior inference, a transparent decision policy, expected utility, SQLite persistence, explainability, What-If analysis, historical trends, and live model diagrams.
 
@@ -6,8 +6,8 @@ A runnable academic decision-support application aligned with SDG 6. It combines
 
 ```bash
 python3 -m venv .venv
-.venv/bin/pip install -r requirements.txt
 .\.venv\Scripts\Activate.ps1
+.venv/bin/pip install -r requirements.txt
 .venv/bin/python scripts/preprocess_dataset.py
 cd frontend && npm install && npm run build && cd ..
 .venv/bin/python -m backend.app

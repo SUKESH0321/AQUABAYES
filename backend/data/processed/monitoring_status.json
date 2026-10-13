@@ -1,0 +1,46 @@
+{
+  "status": "drift_alert",
+  "sample_window_size": 200,
+  "features": {
+    "ph": {
+      "psi": 1.453,
+      "ks_statistic": 0.2337,
+      "ks_pvalue": 0.0,
+      "status": "severe_drift",
+      "baseline_mean": 0.459,
+      "recent_mean": 0.472
+    },
+    "conductance": {
+      "psi": 3.9577,
+      "ks_statistic": 0.5701,
+      "ks_pvalue": 0.0,
+      "status": "severe_drift",
+      "baseline_mean": 0.562,
+      "recent_mean": 0.723
+    },
+    "dissolved_oxygen": {
+      "psi": 4.3818,
+      "ks_statistic": 0.6116,
+      "ks_pvalue": 0.0,
+      "status": "severe_drift",
+      "baseline_mean": 0.597,
+      "recent_mean": 0.801
+    },
+    "temperature": {
+      "psi": 10.1529,
+      "ks_statistic": 0.7669,
+      "ks_pvalue": 0.0,
+      "status": "severe_drift",
+      "baseline_mean": 0.57,
+      "recent_mean": 0.229
+    }
+  },
+  "overall_psi_max": 10.1529,
+  "retraining_recommended": true,
+  "alerts": [
+    "Feature 'ph' exhibits severe_drift (PSI=1.453, KS p-val=0.0000)",
+    "Feature 'conductance' exhibits severe_drift (PSI=3.958, KS p-val=0.0000)",
+    "Feature 'dissolved_oxygen' exhibits severe_drift (PSI=4.382, KS p-val=0.0000)",
+    "Feature 'temperature' exhibits severe_drift (PSI=10.153, KS p-val=0.0000)"
+  ]
+}
