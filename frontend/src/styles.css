@@ -242,3 +242,24 @@ body{background:#0e2b35;color:#eaf5ff;}
 .radial-item{width:110px;transform:translate(-50%,0) translate(var(--x),var(--y)) scale(.15)}
 .radial-nav.open .radial-item{transform:translate(-50%,0) translate(var(--x),var(--y)) scale(1)}
 .radial-label{position:relative;z-index:3}.radial-glyph{z-index:1}
+
+/* Text legibility: panels are light cards over the dark ocean, so they must not inherit the light body color */
+.instrument-panel,.table-panel,.benchmark-container,.uncertainty-summary-panel{color:var(--ink)}
+.instrument-panel.benchmark-hero,.instrument-panel.posterior-constellation,.system-console,.benchmark-hero,.posterior-constellation{color:#eaf5ff}
+.benchmark-table td,.benchmark-table td b,.benchmark-table td strong{color:var(--ink)}
+.benchmark-table th{color:#587174}
+.highlight-row td{color:var(--navy)}
+.mono-note,.panel-label-row .mono-note{color:#5f7a77}.instrument-panel.benchmark-hero .mono-note,.posterior-constellation .mono-note{color:#9fc7be}
+/* Contrast pass on small grey captions */
+.recent-date,.mono-data,.history-row .mono-data,.history-head,.factor-index,.factor-copy small,.parameter-field small,.data-rail-item span,.source-row small,.threshold-list span,.u-metric-item small,.bench-stat-card small{color:#566f6c}
+.parameter-field small{color:#5a7370}
+.graph-node small{color:#4f6e69}
+.graph-node.chance small{color:#7a5f1c}.graph-node.decision small{color:#2d5788}.graph-node.utility small{color:#6a3d80}
+.graph-arrow{color:#3f7f75}
+.history-head{color:#4f6a67}
+.benchmark-hero .bench-stat-card small{color:#9fc7be}
+.instrument-panel.posterior-constellation .mono-note,.system-console .mono-note{color:#9fc7be}
+.page-heading{position:relative;padding:18px 22px;margin-left:-22px;margin-right:-22px;border-radius:6px;background:linear-gradient(90deg,rgba(7,25,30,.72),rgba(7,25,30,.35) 70%,transparent)}
+.page-heading h1{text-shadow:0 2px 14px rgba(7,25,30,.85)}
+.page-heading p{color:#e3f0ff}
+@media(max-width:700px){.page-heading{margin-left:-8px;margin-right:-8px;padding:14px}}

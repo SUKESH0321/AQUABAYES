@@ -49,7 +49,7 @@ export default function Waves() {
       <linearGradient id="wave-face-c" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#143943" /><stop offset="32%" stopColor="#69d4bd" /><stop offset="64%" stopColor="#278e83" /><stop offset="100%" stopColor="#0e2b35" /></linearGradient>
       <linearGradient id="wave-ridge" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stopColor="#278e83" stopOpacity=".06" /><stop offset="45%" stopColor="#69d4bd" stopOpacity=".74" /><stop offset="100%" stopColor="#d8f7ec" stopOpacity=".12" /></linearGradient>
     </defs>
-    {LAYERS.map((l, i) => <g key={l.cls} ref={(el) => (refs.current[i] = el)} className={`wave-layer wave-layer-${l.cls}`}>
+    {LAYERS.map((l, i) => <g key={l.cls} ref={(el) => { refs.current[i] = el; }} className={`wave-layer wave-layer-${l.cls}`}>
       <path className="wave-shadow" />
       <path className="wave-body" />
       <path className="wave-ridge" />

@@ -31,15 +31,16 @@ export default function Benchmark({ api, onRunRetrain }) {
   }
 
   const testMet = report.test_metrics || {};
-  const champMet = testMet.calibrated_random_forest || testMet.calibrated_hist_gb || {};
+  const pick = (...keys) => { for (const k of keys) if (testMet[k]) return testMet[k]; return {}; };
+  const champMet = pick('calibrated_random_forest', 'random_forest', 'calibrated_hist_gb', 'gradient_boosting');
   const bnMet = testMet.bayesian_network || {};
   const baseMet = testMet.majority_class_baseline || {};
 
   const models = [
     { id: 'calibrated_random_forest', name: 'Calibrated Random Forest (Champion)', type: 'ML Ensemble', metrics: champMet, badge: 'CHAMPION' },
     { id: 'bayesian_network', name: 'Empirical Bayesian Network (Dirichlet)', type: 'Probabilistic Graph', metrics: bnMet, badge: 'EXACT INFERENCE' },
-    { id: 'calibrated_hist_gb', name: 'Calibrated Gradient Boosting', type: 'Tree Ensemble', metrics: testMet.calibrated_hist_gb || {}, badge: 'CANDIDATE' },
-    { id: 'calibrated_logistic_regression', name: 'Calibrated Logistic Regression', type: 'Linear Model', metrics: testMet.calibrated_logistic_regression || {}, badge: 'CANDIDATE' },
+    { id: 'calibrated_hist_gb', name: 'Calibrated Gradient Boosting', type: 'Tree Ensemble', metrics: pick('calibrated_hist_gb', 'gradient_boosting'), badge: 'CANDIDATE' },
+    { id: 'calibrated_logistic_regression', name: 'Calibrated Logistic Regression', type: 'Linear Model', metrics: pick('calibrated_logistic_regression', 'logistic_regression'), badge: 'CANDIDATE' },
     { id: 'majority_class_baseline', name: 'Majority Class Baseline', type: 'Heuristic Baseline', metrics: baseMet, badge: 'BASELINE' },
   ];
 
