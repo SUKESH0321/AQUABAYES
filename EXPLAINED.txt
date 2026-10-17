@@ -1,0 +1,249 @@
+=====================================================================
+MIZU / WaterAI  -  EXPLAINED IN SIMPLE WORDS (with the technical bits)
+=====================================================================
+
+PART 1 - WHAT IS THIS PROJECT?
+---------------------------------------------------------------------
+You type in 4 water measurements. The app tells you:
+  1. How likely the water is to be LOW / MODERATE / HIGH / CRITICAL risk
+  2. What you should DO about it (use it, retest, treat it, or avoid it)
+  3. WHY it said that (which measurement pushed the result)
+  4. How much to TRUST it (uncertainty, "this input looks weird" warnings)
+
+The 4 measurements (all on a 0-1 "normalized" scale, from the dataset):
+  - ph                 (acidity)
+  - conductance        (dissolved salts/minerals)
+  - dissolved_oxygen   (oxygen in the water; low = bad/polluted)
+  - temperature
+
+Data: UCI "Water Quality Prediction" dataset (Zhao 2019). 705 days,
+37 monitoring stations in Georgia (USA). Raw file is a MATLAB .mat file.
+
+
+PART 2 - THE BIG PICTURE (the pipeline)
+---------------------------------------------------------------------
+  Raw data -> clean/split -> turn numbers into LOW/MOD/HIGH bins
+          -> Bayesian Network (probabilities of risk)
+          -> Decision step (expected utility -> pick an action)
+          -> explain + sanity-check -> show in the website
+
+There are actually TWO "brains" running side by side on every request:
+  (A) the Bayesian Network   <- the main, explainable one
+  (B) a normal ML model      <- "champion" classifier (a second opinion)
+Plus a classic formula score (WQI) from water-quality standards.
+
+
+PART 3 - THE BAYESIAN STUFF (the part everyone asks about)
+---------------------------------------------------------------------
+
+3.1 What is a Bayesian Network?
+  A map of "what influences what", with probabilities on it.
+  Instead of saying "water = BAD", it says "70% chance moderate,
+  20% high, 5% low, 5% critical". It keeps the uncertainty.
+
+3.2 Our network (6 arrows, 7 boxes):
+
+    ph ------------\
+                    >--> chemical ----\
+    conductance ---/                    \
+                                         >--> overall_risk
+    dissolved_oxygen --\                /
+                        >--> biological-/
+    temperature -------/
+
+  - ph, conductance, dissolved_oxygen, temperature = things we MEASURE
+    ("observed" nodes). Each is binned into low / moderate / high.
+  - chemical   = hidden: "how chemically contaminated is it?"
+                 (low / moderate / high) - depends on ph + conductance
+  - biological = hidden: "how biologically contaminated is it?"
+                 (low / moderate / high) - depends on DO + temperature
+                 (low oxygen + warm water = bacteria/organic pollution)
+  - overall_risk = final answer: low / moderate / high / critical
+                 - depends on chemical + biological
+
+3.3 What are CPTs?
+  CPT = Conditional Probability Table. Each box has one. It answers:
+  "GIVEN my parents are in state X, what's the chance I'm in state Y?"
+  Example: P(chemical = high | ph = high, conductance = high).
+  Root boxes (the 4 measurements) have no parents, so they just have
+  a plain "prior" (how often is each state seen in the data).
+
+3.4 Where do the CPT numbers come from?  (be honest about this!)
+  - Measurement priors: counted from training data, + 1 (Laplace
+    smoothing so nothing ever has probability 0).
+  - chemical / biological CPTs: computed from how often "hazard" flags
+    occur in training data for each parent combination, then blended
+    with Dirichlet pseudo-counts (= "fake" starting counts that stop
+    the model overreacting to tiny samples). The exact blending
+    formulas (e.g. haz_rate*0.75+0.05) are hand-picked heuristics,
+    NOT pure maximum-likelihood learning.
+  - overall_risk CPT: a hand-designed scoring rule
+    (score = 0.55*chemical + 0.45*biological -> picks one of 4
+    pre-set probability rows). This is a modelling ASSUMPTION.
+  - The "hazard" labels themselves come from rule thresholds in
+    standards.py, not from lab-confirmed contamination. So the
+    "learned" part is really "learned from rule-based labels".
+  Say this in your viva/presentation - it's the honest limitation.
+
+3.5 Inference ("the maths that gives the answer")
+  Library: pgmpy. Method: VariableElimination = EXACT inference
+  (not guessing/sampling). You give evidence (the 4 states), it
+  sums out the hidden variables using Bayes' rule:
+      P(risk | evidence) = P(evidence | risk) * P(risk) / P(evidence)
+  and returns the full probability distribution for chemical,
+  biological, and overall_risk.
+
+3.6 Evidence shifts
+  Posterior minus prior. "Before looking at the data, P(high)=0.30;
+  after, it's 0.50, so evidence pushed it up by +0.20." Shown in the
+  UI as the "evidence trail".
+
+3.7 Discretization (numbers -> low/moderate/high)
+  Bayesian net uses categories. Thresholds per feature are saved in
+  model_metadata.json (fitted on training data only), e.g.
+  ph <= 0.82 -> low, <= 0.91 -> moderate, else high.
+  Function: state_for() in backend/bayes/metadata.py.
+  NOTE: "low/moderate/high" is about the VALUE's size band, not
+  automatically "good/bad".
+
+
+PART 4 - THE DECISION PART (Bayes tells you the risk, this picks an action)
+---------------------------------------------------------------------
+Actions: Normal use | Monitor/retest | Treat | Avoid/restrict
+A utility table gives a score for each (action, risk level) pair
+(e.g. Normal use when risk is critical = -42, ouch).
+
+  Expected Utility(action) = SUM over risk levels of
+                             P(risk level) * utility(action, risk level)
+
+The app recommends the action with the HIGHEST expected utility.
+Key idea: "prediction is not the decision" - same risk probabilities
+can lead to different actions if you change what mistakes cost.
+The utility numbers are educational assumptions, not real medical/
+financial values (file: backend/decision/influence.py).
+
+
+PART 5 - THE NORMAL ML MODELS (the "second opinion")
+---------------------------------------------------------------------
+File backend/ml/classifiers.py trains 3 candidates:
+  - Logistic Regression
+  - Random Forest
+  - Gradient Boosting
+Each is wrapped with CalibratedClassifierCV so its probabilities are
+trustworthy (a "70%" should be right ~70% of the time). Best one
+("champion") is saved as a .pkl and loaded by the API.
+A Random Forest regressor also predicts the continuous WQI (0-100).
+Baselines (baselines.py) = dumb models (always-majority-class,
+uniform guess). A fancy model must BEAT these to be worth anything.
+Training/eval uses a CHRONOLOGICAL split (70% train / 15% val / 15%
+test by date) so the model never sees the future = no data leakage.
+Metrics: accuracy-type scores plus Brier score and ECE (calibration).
+
+
+PART 6 - TRUST / SAFETY LAYER (backend/ml/explainability.py)
+---------------------------------------------------------------------
+  - Entropy / margin / Gini: how "spread out" (unsure) the answer is.
+  - OOD detection (Mahalanobis distance): checks if your input looks
+    like anything seen in training. If not, it warns you.
+  - Feature attribution: which of the 4 measurements drove the risk.
+  - Guardrails: warnings when evidence is thin/odd.
+
+  backend/ml/monitoring.py:
+  - Drift detection (PSI + KS test): has incoming data changed vs
+    training?  - Stores lab-verified observations separately.
+  - Model registry/versioning, retrain only if new model is not worse.
+
+  backend/data/standards.py:
+  - WQI (Water Quality Index, Horton/Brown): weighted average of
+    per-parameter scores -> 0-100. Weights: pH .30, conductance .20,
+    DO .35, temp .15. Banded: >=75 low, 55-75 moderate, 35-55 high,
+    <35 critical (+ emergency rules like very low DO = critical).
+  - References WHO, BIS IS 10500, CPCB standards as context.
+
+
+PART 7 - HOW A REQUEST FLOWS (what happens when you click Analyze)
+---------------------------------------------------------------------
+  Browser (React) --POST /api/assessments--> Flask (app.py)
+    1. validate the 4 numbers are 0..1
+    2. bayes.infer()            -> posterior probabilities
+    3. decision.decide()        -> utilities + recommended action
+    4. calculate_wqi()          -> WQI score + standards class
+    5. champion ML model        -> second-opinion probabilities
+    6. explain_assessment()     -> attribution, uncertainty, OOD, trail
+    7. save to SQLite (water_risk.db)
+    8. JSON back -> UI draws charts
+  "What-if" does the same but does NOT save.
+
+
+PART 8 - WHICH FILES ARE WHICH
+---------------------------------------------------------------------
+
+*** CORE AI / BAYESIAN (the important stuff) ***
+  backend/bayes/network.py      <- THE Bayesian network: graph, CPTs,
+                                   exact inference (pgmpy). MAIN FILE.
+  backend/bayes/metadata.py     <- thresholds + number->low/mod/high
+  backend/decision/influence.py <- utility table + expected utility
+  backend/ml/classifiers.py     <- ML models (LogReg/RF/GB) + calibration
+  backend/ml/baselines.py       <- dumb baseline models for comparison
+  backend/ml/evaluate.py        <- metrics (Brier, ECE, etc.)
+  backend/ml/explainability.py  <- uncertainty, OOD, feature attribution
+  backend/ml/monitoring.py      <- drift detection, model registry
+  backend/data/standards.py     <- WQI formula, risk rules, hazard flags
+  backend/data/pipeline.py      <- data cleaning, chrono split, labels
+  backend/ml/artifacts/*.pkl    <- saved trained models (not code)
+  scripts/train_and_evaluate.py <- trains + evaluates everything
+  scripts/preprocess_dataset.py <- runs the data pipeline
+  scripts/evaluate_model.py     <- runs evaluation
+  scripts/download_dataset.py   <- fetches the raw dataset
+
+*** BACKEND PLUMBING (not AI, but needed) ***
+  backend/app.py                <- Flask API; glues all the AI together
+  backend/db.py                 <- SQLite storage (assessments, sources)
+  backend/tests/test_core.py    <- tests
+  backend/data/processed/       <- generated CSV/JSON/DB outputs
+  backend/data/raw/             <- original dataset
+
+*** UI / FRONTEND (React + Vite, no AI logic in here) ***
+  frontend/src/App.jsx          <- main app: all pages, forms, charts,
+                                   navigation (dashboard, analyze,
+                                   what-if, risk, decision, history,
+                                   sources, network diagrams, about)
+  frontend/src/Benchmark.jsx    <- model comparison/benchmark page
+  frontend/src/EvidenceTrail.jsx<- shows prior->posterior evidence trail
+  frontend/src/Waves.jsx        <- animated wave background (pure looks)
+  frontend/src/main.jsx         <- React entry point
+  frontend/src/styles.css       <- all styling
+  frontend/index.html           <- HTML shell
+  frontend/vite.config.js       <- build config
+  frontend/package.json         <- JS dependencies
+  frontend/public/              <- static files
+
+*** DOCS / CONFIG ***
+  README.md, TODO.md, docs/bayesian-network.md, docs/decision-policy.md,
+  docs/evaluation.md, requirements.txt, Dockerfile, app.config.ts
+
+The UI only DISPLAYS what the backend sends. If you want to explain
+"where is the AI?" -> everything under backend/bayes, backend/decision,
+backend/ml, backend/data (+ scripts/).
+
+
+PART 9 - 30-SECOND PITCH
+---------------------------------------------------------------------
+"We take four water measurements, bin them, and run them through a
+Bayesian Network with hidden chemical and biological contamination
+nodes to get an exact probability distribution over risk levels.
+Then a decision layer uses expected utility to recommend an action.
+Alongside it a calibrated ML ensemble gives a second opinion, and an
+uncertainty/out-of-distribution layer tells you when not to trust
+the result. Not a replacement for lab testing."
+
+
+PART 10 - KNOWN LIMITATIONS (say them before someone else does)
+---------------------------------------------------------------------
+  - Only 4 features; no nitrate, turbidity, bacteria, etc.
+  - Data is normalized 0-1 from Georgia (USA) rivers, so values are
+    not real pH/mg/L numbers.
+  - Hazard labels are rule-based, not lab-confirmed.
+  - Some CPT numbers and all utility values are hand-set assumptions.
+  - Educational decision-support only - not legal/medical advice.
+=====================================================================
